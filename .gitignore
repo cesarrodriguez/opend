@@ -1,0 +1,6 @@
+node_modules
+.dfx
+dist/*
+declarations
+.DS_STORE
+package-lock.json
