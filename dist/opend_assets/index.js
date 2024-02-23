@@ -268,6 +268,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "makeNonceTransform": () => (/* reexport safe */ _transforms__WEBPACK_IMPORTED_MODULE_6__.makeNonceTransform),
 /* harmony export */   "makeNonce": () => (/* reexport safe */ _types__WEBPACK_IMPORTED_MODULE_7__.makeNonce),
 /* harmony export */   "RequestStatusResponseStatus": () => (/* binding */ RequestStatusResponseStatus),
+/* harmony export */   "IdentityInvalidError": () => (/* binding */ IdentityInvalidError),
 /* harmony export */   "HttpAgent": () => (/* binding */ HttpAgent)
 /* harmony export */ });
 /* harmony import */ var _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @dfinity/principal */ "./node_modules/@dfinity/principal/lib/esm/index.js");
@@ -313,6 +314,12 @@ class HttpDefaultFetchError extends _errors__WEBPACK_IMPORTED_MODULE_1__.AgentEr
         this.message = message;
     }
 }
+class IdentityInvalidError extends _errors__WEBPACK_IMPORTED_MODULE_1__.AgentError {
+    constructor(message) {
+        super(message);
+        this.message = message;
+    }
+}
 function getDefaultFetch() {
     let defaultFetch;
     if (typeof window !== 'undefined') {
@@ -327,7 +334,7 @@ function getDefaultFetch() {
     else if (typeof __webpack_require__.g !== 'undefined') {
         // Node context
         if (__webpack_require__.g.fetch) {
-            defaultFetch = __webpack_require__.g.fetch;
+            defaultFetch = __webpack_require__.g.fetch.bind(__webpack_require__.g);
         }
         else {
             throw new HttpDefaultFetchError('Fetch implementation was not available. You appear to be in a Node.js context, but global.fetch was not available.');
@@ -335,7 +342,7 @@ function getDefaultFetch() {
     }
     else if (typeof self !== 'undefined') {
         if (self.fetch) {
-            defaultFetch = self.fetch;
+            defaultFetch = self.fetch.bind(self);
         }
     }
     if (defaultFetch) {
@@ -405,10 +412,16 @@ class HttpAgent {
         this._pipeline.splice(i >= 0 ? i : this._pipeline.length, 0, Object.assign(fn, { priority }));
     }
     async getPrincipal() {
+        if (!this._identity) {
+            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
+        }
         return (await this._identity).getPrincipal();
     }
     async call(canisterId, options, identity) {
-        const id = (await (identity !== undefined ? await identity : await this._identity));
+        const id = await (identity !== undefined ? await identity : await this._identity);
+        if (!id) {
+            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
+        }
         const canister = _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.from(canisterId);
         const ecid = options.effectiveCanisterId
             ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.from(options.effectiveCanisterId)
@@ -457,6 +470,9 @@ class HttpAgent {
     }
     async query(canisterId, fields, identity) {
         const id = await (identity !== undefined ? await identity : await this._identity);
+        if (!id) {
+            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
+        }
         const canister = typeof canisterId === 'string' ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.fromText(canisterId) : canisterId;
         const sender = (id === null || id === void 0 ? void 0 : id.getPrincipal()) || _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.anonymous();
         const request = {
@@ -478,7 +494,7 @@ class HttpAgent {
             body: request,
         });
         // Apply transform for identity.
-        transformedRequest = await id.transformRequest(transformedRequest);
+        transformedRequest = await (id === null || id === void 0 ? void 0 : id.transformRequest(transformedRequest));
         const body = _cbor__WEBPACK_IMPORTED_MODULE_3__.encode(transformedRequest.body);
         const response = await this._fetch('' + new URL(`/api/v2/canister/${canister.toText()}/query`, this._host), Object.assign(Object.assign({}, transformedRequest.request), { body }));
         if (!response.ok) {
@@ -491,6 +507,9 @@ class HttpAgent {
     async readState(canisterId, fields, identity) {
         const canister = typeof canisterId === 'string' ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.fromText(canisterId) : canisterId;
         const id = await (identity !== undefined ? await identity : await this._identity);
+        if (!id) {
+            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
+        }
         const sender = (id === null || id === void 0 ? void 0 : id.getPrincipal()) || _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.anonymous();
         // TODO: remove this any. This can be a Signed or UnSigned request.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -508,7 +527,7 @@ class HttpAgent {
             },
         });
         // Apply transform for identity.
-        transformedRequest = await id.transformRequest(transformedRequest);
+        transformedRequest = await (id === null || id === void 0 ? void 0 : id.transformRequest(transformedRequest));
         const body = _cbor__WEBPACK_IMPORTED_MODULE_3__.encode(transformedRequest.body);
         const response = await this._fetch('' + new URL(`/api/v2/canister/${canister}/read_state`, this._host), Object.assign(Object.assign({}, transformedRequest.request), { body }));
         if (!response.ok) {
@@ -539,6 +558,12 @@ class HttpAgent {
             this._rootKeyFetched = true;
         }
         return this.rootKey;
+    }
+    invalidateIdentity() {
+        this._identity = null;
+    }
+    replaceIdentity(identity) {
+        this._identity = Promise.resolve(identity);
     }
     _transform(request) {
         let p = Promise.resolve(request);
@@ -664,6 +689,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "ReplicaRejectCode": () => (/* reexport safe */ _api__WEBPACK_IMPORTED_MODULE_0__.ReplicaRejectCode),
 /* harmony export */   "Expiry": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.Expiry),
 /* harmony export */   "HttpAgent": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.HttpAgent),
+/* harmony export */   "IdentityInvalidError": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.IdentityInvalidError),
 /* harmony export */   "RequestStatusResponseStatus": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.RequestStatusResponseStatus),
 /* harmony export */   "makeExpiryTransform": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.makeExpiryTransform),
 /* harmony export */   "makeNonce": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.makeNonce),
@@ -1457,6 +1483,11 @@ __webpack_require__.r(__webpack_exports__);
  * @todo https://github.com/dfinity/agent-js/issues/420
  */
 class AgentError extends Error {
+    constructor(message) {
+        super(message);
+        this.message = message;
+        Object.setPrototypeOf(this, AgentError.prototype);
+    }
 }
 //# sourceMappingURL=errors.js.map
 
@@ -1478,6 +1509,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "UpdateCallRejectedError": () => (/* reexport safe */ _actor__WEBPACK_IMPORTED_MODULE_0__.UpdateCallRejectedError),
 /* harmony export */   "Expiry": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.Expiry),
 /* harmony export */   "HttpAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.HttpAgent),
+/* harmony export */   "IdentityInvalidError": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.IdentityInvalidError),
 /* harmony export */   "ProxyAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyAgent),
 /* harmony export */   "ProxyMessageKind": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyMessageKind),
 /* harmony export */   "ProxyStubAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyStubAgent),
@@ -1907,7 +1939,7 @@ function concat(...buffers) {
 function toHex(buffer) {
     return [...new Uint8Array(buffer)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
-const hexRe = /^([0-9A-F]{2})*$/i.compile();
+const hexRe = new RegExp(/^([0-9A-F]{2})*$/i);
 /**
  * Transforms a hexadecimal string into an array buffer.
  * @param hex The hexadecimal string to use.
@@ -5815,10 +5847,10 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
   'use strict';
 
 /*
- *      bignumber.js v9.1.2
+ *      bignumber.js v9.0.2
  *      A JavaScript library for arbitrary-precision arithmetic.
  *      https://github.com/MikeMcl/bignumber.js
- *      Copyright (c) 2022 Michael Mclaughlin <M8ch88l@gmail.com>
+ *      Copyright (c) 2021 Michael Mclaughlin <M8ch88l@gmail.com>
  *      MIT Licensed.
  *
  *      BigNumber.prototype methods     |  BigNumber methods
@@ -6450,7 +6482,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
      * arguments {number|string|BigNumber}
      */
     BigNumber.maximum = BigNumber.max = function () {
-      return maxOrMin(arguments, -1);
+      return maxOrMin(arguments, P.lt);
     };
 
 
@@ -6460,7 +6492,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
      * arguments {number|string|BigNumber}
      */
     BigNumber.minimum = BigNumber.min = function () {
-      return maxOrMin(arguments, 1);
+      return maxOrMin(arguments, P.gt);
     };
 
 
@@ -7104,20 +7136,24 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
 
 
     // Handle BigNumber.max and BigNumber.min.
-    // If any number is NaN, return NaN.
-    function maxOrMin(args, n) {
-      var k, y,
+    function maxOrMin(args, method) {
+      var n,
         i = 1,
-        x = new BigNumber(args[0]);
+        m = new BigNumber(args[0]);
 
       for (; i < args.length; i++) {
-        y = new BigNumber(args[i]);
-        if (!y.s || (k = compare(x, y)) === n || k === 0 && x.s === n) {
-          x = y;
+        n = new BigNumber(args[i]);
+
+        // If any number is NaN, return NaN.
+        if (!n.s) {
+          m = n;
+          break;
+        } else if (method.call(m, n)) {
+          m = n;
         }
       }
 
-      return x;
+      return m;
     }
 
 
@@ -7236,7 +7272,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
             n = xc[ni = 0];
 
             // Get the rounding digit at index j of n.
-            rd = mathfloor(n / pows10[d - j - 1] % 10);
+            rd = n / pows10[d - j - 1] % 10 | 0;
           } else {
             ni = mathceil((i + 1) / LOG_BASE);
 
@@ -7267,7 +7303,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
               j = i - LOG_BASE + d;
 
               // Get the rounding digit at index j of n.
-              rd = j < 0 ? 0 : mathfloor(n / pows10[d - j - 1] % 10);
+              rd = j < 0 ? 0 : n / pows10[d - j - 1] % 10 | 0;
             }
           }
 
@@ -7515,7 +7551,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
 
         // The sign of the result of pow when x is negative depends on the evenness of n.
         // If +n overflows to ±Infinity, the evenness of n would be not be known.
-        y = new BigNumber(Math.pow(+valueOf(x), nIsBig ? n.s * (2 - isOdd(n)) : +valueOf(n)));
+        y = new BigNumber(Math.pow(+valueOf(x), nIsBig ? 2 - isOdd(n) : +valueOf(n)));
         return m ? y.mod(m) : y;
       }
 
@@ -7816,12 +7852,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
       }
 
       // x < y? Point xc to the array of the bigger number.
-      if (xLTy) {
-        t = xc;
-        xc = yc;
-        yc = t;
-        y.s = -y.s;
-      }
+      if (xLTy) t = xc, xc = yc, yc = t, y.s = -y.s;
 
       b = (j = yc.length) - (i = xc.length);
 
@@ -7975,14 +8006,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
       ycL = yc.length;
 
       // Ensure xc points to longer array and xcL to its length.
-      if (xcL < ycL) {
-        zc = xc;
-        xc = yc;
-        yc = zc;
-        i = xcL;
-        xcL = ycL;
-        ycL = i;
-      }
+      if (xcL < ycL) zc = xc, xc = yc, yc = zc, i = xcL, xcL = ycL, ycL = i;
 
       // Initialise the result array with zeros.
       for (i = xcL + ycL, zc = []; i--; zc.push(0));
@@ -8103,12 +8127,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
       b = yc.length;
 
       // Point xc to the longer array, and b to the shorter length.
-      if (a - b < 0) {
-        t = yc;
-        yc = xc;
-        xc = t;
-        b = a;
-      }
+      if (a - b < 0) t = yc, yc = xc, xc = t, b = a;
 
       // Only start adding at yc.length - 1 as the further digits of xc can be ignored.
       for (a = 0; b;) {
@@ -8394,12 +8413,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
           intDigits = isNeg ? intPart.slice(1) : intPart,
           len = intDigits.length;
 
-        if (g2) {
-          i = g1;
-          g1 = g2;
-          g2 = i;
-          len -= i;
-        }
+        if (g2) i = g1, g1 = g2, g2 = i, len -= i;
 
         if (g1 > 0 && len > 0) {
           i = len % g1 || g1;
@@ -53574,7 +53588,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 function App() {
-    const NFTID = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+    // const NFTID = "rrkah-fqaaa-aaaaa-aaaaq-cai";
     return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "App" },
         react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Header__WEBPACK_IMPORTED_MODULE_1__["default"], null),
         react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Footer__WEBPACK_IMPORTED_MODULE_2__["default"], null)));
@@ -53598,8 +53612,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 function Button(props) {
-    return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "Chip-root makStyles-chipBlue-108 Chip-clickable" },
-        react__WEBPACK_IMPORTED_MODULE_0__.createElement("span", { onClick: props.handleClick, className: "form-Chip-Label" }, props.text)));
+    return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "Chip-root makeStyles-chipBlue-108 Chip-clickable" },
+        react__WEBPACK_IMPORTED_MODULE_0__.createElement("span", { onClick: props.handleClick, className: "form-Chip-label" }, props.text)));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Button);
 
@@ -53662,10 +53676,9 @@ function Gallery(props) {
     const [items, setItems] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     function fetchNFTs() {
         if (props.ids != undefined) {
-            setItems(props.ids.map((NFTId) => (react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Item__WEBPACK_IMPORTED_MODULE_1__["default"], { id: NFTId, key: NFTId.toText() }))));
+            setItems(props.ids.map((NFTId) => react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Item__WEBPACK_IMPORTED_MODULE_1__["default"], { id: NFTId, key: NFTId.toText() })));
         }
     }
-    ;
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
         fetchNFTs();
     }, []);
@@ -53696,8 +53709,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _assets_home_img_png__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../assets/home-img.png */ "./src/opend_assets/assets/home-img.png");
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router-dom/esm/react-router-dom.js");
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/esm/react-router.js");
-/* harmony import */ var _Gallery__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Gallery */ "./src/opend_assets/src/components/Gallery.jsx");
-/* harmony import */ var _Minter__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./Minter */ "./src/opend_assets/src/components/Minter.jsx");
+/* harmony import */ var _Minter__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Minter */ "./src/opend_assets/src/components/Minter.jsx");
+/* harmony import */ var _Gallery__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./Gallery */ "./src/opend_assets/src/components/Gallery.jsx");
 /* harmony import */ var _declarations_opend__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../../declarations/opend */ "./src/declarations/opend/index.js");
 /* harmony import */ var _index__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../index */ "./src/opend_assets/src/index.jsx");
 
@@ -53711,15 +53724,14 @@ __webpack_require__.r(__webpack_exports__);
 function Header() {
     const [userOwnedGallery, setOwnedGallery] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     async function getNFTs() {
-        const userNFTsIds = await _declarations_opend__WEBPACK_IMPORTED_MODULE_5__.opend.getOwnedNFTs(_index__WEBPACK_IMPORTED_MODULE_6__["default"]);
-        console.log(userNFTsIds);
-        setOwnedGallery(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Gallery__WEBPACK_IMPORTED_MODULE_3__["default"], { titles: "My NFTs", ids: userNFTsIds }));
+        const userNFTIds = await _declarations_opend__WEBPACK_IMPORTED_MODULE_5__.opend.getOwnedNFTs(_index__WEBPACK_IMPORTED_MODULE_6__["default"]);
+        console.log(userNFTIds);
+        setOwnedGallery(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Gallery__WEBPACK_IMPORTED_MODULE_4__["default"], { title: "My NFTs", ids: userNFTIds }));
     }
-    ;
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
         getNFTs();
     }, []);
-    return (react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_7__.BrowserRouter, { forcerefresh: true },
+    return (react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_7__.BrowserRouter, { forceRefresh: true },
         react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "app-root-1" },
             react__WEBPACK_IMPORTED_MODULE_0__.createElement("header", { className: "Paper-root AppBar-root AppBar-positionStatic AppBar-colorPrimary Paper-elevation4" },
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "Toolbar-root Toolbar-regular header-appBar-13 Toolbar-gutters" },
@@ -53742,7 +53754,7 @@ function Header() {
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/discover" },
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("h1", null, "Discover")),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/minter" },
-                react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Minter__WEBPACK_IMPORTED_MODULE_4__["default"], null)),
+                react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Minter__WEBPACK_IMPORTED_MODULE_3__["default"], null)),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/collection" }, userOwnedGallery))));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Header);
@@ -53764,8 +53776,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @dfinity/agent */ "./node_modules/@dfinity/agent/lib/esm/index.js");
 /* harmony import */ var _declarations_nft__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../declarations/nft */ "./src/declarations/nft/index.js");
-/* harmony import */ var _Button__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Button */ "./src/opend_assets/src/components/Button.jsx");
-/* harmony import */ var _declarations_opend__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../declarations/opend */ "./src/declarations/opend/index.js");
+/* harmony import */ var _declarations_opend__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../declarations/opend */ "./src/declarations/opend/index.js");
+/* harmony import */ var _Button__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./Button */ "./src/opend_assets/src/components/Button.jsx");
 
 
 
@@ -53780,10 +53792,9 @@ function Item(props) {
     const id = props.id;
     const localHost = "http://localhost:8080/";
     const agent = new _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__.HttpAgent({ host: localHost });
-    agent.fetchRootKey();
     let NFTActor;
     async function loadNFT() {
-        const NFTActor = await _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__.Actor.createActor(_declarations_nft__WEBPACK_IMPORTED_MODULE_2__.idlFactory, {
+        NFTActor = await _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__.Actor.createActor(_declarations_nft__WEBPACK_IMPORTED_MODULE_2__.idlFactory, {
             agent,
             canisterId: id,
         });
@@ -53795,29 +53806,27 @@ function Item(props) {
         setName(name);
         setOwner(owner.toText());
         setImage(image);
-        setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_3__["default"], { handleClick: handleSell, text: "Sell" }));
+        setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: handleSell, text: "Sell" }));
     }
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
         loadNFT();
     }, []);
     let price;
-    async function handleSell() {
+    function handleSell() {
         console.log("Sell clicked");
-        setPriceInput(react__WEBPACK_IMPORTED_MODULE_0__.createElement("input", { placeholder: "Price in Dang", type: "number", className: "price-input", value: price, onChange: (e) => (price = e.target.value) }));
-        setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_3__["default"], { handleClick: sellItem, text: "Confirm" }));
+        setPriceInput(react__WEBPACK_IMPORTED_MODULE_0__.createElement("input", { placeholder: "Price in DANG", type: "number", className: "price-input", value: price, onChange: (e) => (price = e.target.value) }));
+        setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: sellItem, text: "Confirm" }));
     }
-    ;
     async function sellItem() {
         console.log("set price = " + price);
-        const listingResult = await _declarations_opend__WEBPACK_IMPORTED_MODULE_4__.opend.listItem(props.id, Number(price));
-        console.log("Listing" + listingResult);
-        if (listingResult == "Sucess") {
-            const openId = await _declarations_opend__WEBPACK_IMPORTED_MODULE_4__.opend.getOpenDCannisterID();
-            const transferResult = await NFTActor.transferOwnership(openId);
-            console.log("Transfer: " + transferResult);
+        const listingResult = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.listItem(props.id, Number(price));
+        console.log("listing: " + listingResult);
+        if (listingResult == "Success") {
+            const openDId = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.getOpenDCanisterID();
+            const transferResult = await NFTActor.transferOwnership(openDId, true);
+            console.log("transfer: " + transferResult);
         }
     }
-    ;
     return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disGrid-item" },
         react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disPaper-root disCard-root makeStyles-root-17 disPaper-elevation1 disPaper-rounded" },
             react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", { className: "disCardMedia-root makeStyles-image-19 disCardMedia-media disCardMedia-img", src: image }),
@@ -53881,7 +53890,7 @@ function Minter() {
             react__WEBPACK_IMPORTED_MODULE_0__.createElement("h6", { className: "form-Typography-root makeStyles-subhead-102 form-Typography-subtitle1 form-Typography-gutterBottom" }, "Upload Image"),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement("form", { className: "makeStyles-form-109", noValidate: "", autoComplete: "off" },
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "upload-container" },
-                    react__WEBPACK_IMPORTED_MODULE_0__.createElement("input", { ...register("image", { required: true }), className: "upload", type: "file", accept: "image/x-png,image/jpeg,image/gif,image/svg+xml,image/webp,image/png" })),
+                    react__WEBPACK_IMPORTED_MODULE_0__.createElement("input", { ...register("image", { required: true }), className: "upload", type: "file", accept: "image/x-png,image/jpeg,image/gif,image/svg+xml,image/webp" })),
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("h6", { className: "form-Typography-root makeStyles-subhead-102 form-Typography-subtitle1 form-Typography-gutterBottom" }, "Collection Name"),
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "form-FormControl-root form-TextField-root form-FormControl-marginNormal form-FormControl-fullWidth" },
                     react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "form-InputBase-root form-OutlinedInput-root form-InputBase-fullWidth form-InputBase-formControl" },
@@ -54088,7 +54097,7 @@ const idlFactory = ({ IDL }) => {
     'getCanisterId' : IDL.Func([], [IDL.Principal], ['query']),
     'getName' : IDL.Func([], [IDL.Text], ['query']),
     'getOwner' : IDL.Func([], [IDL.Principal], ['query']),
-    'transferOwnership' : IDL.Func([IDL.Principal], [IDL.Text], []),
+    'transferOwnership' : IDL.Func([IDL.Principal, IDL.Bool], [IDL.Text], []),
   });
   return NFT;
 };
@@ -54121,7 +54130,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // CANISTER_ID is replaced by webpack based on node environment
-const canisterId = "r7inp-6aaaa-aaaaa-aaabq-cai";
+const canisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
 /**
  * 
@@ -54171,7 +54180,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 const idlFactory = ({ IDL }) => {
   return IDL.Service({
-    'getOpenDCannisterID' : IDL.Func([], [IDL.Principal], ['query']),
+    'getOpenDCanisterID' : IDL.Func([], [IDL.Principal], ['query']),
     'getOwnedNFTs' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(IDL.Principal)],

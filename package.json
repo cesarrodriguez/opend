@@ -2,10 +2,7 @@
   "name": "opend_assets",
   "version": "0.1.0",
   "description": "The Place to Buy and Sell NFTs on the Internet Computer",
-  "keywords": [
-    "NFT",
-    "OpenD"
-  ],
+  "keywords": ["NFT", "OpenD"],
   "scripts": {
     "build": "webpack",
     "prebuild": "npm run copy:types",
@@ -27,7 +24,7 @@
     "terser-webpack-plugin": "5.1.1",
     "util": "0.12.3",
     "webpack": "5.63.0",
-    "webpack-cli": "4.10.0",
+    "webpack-cli": "4.9.1",
     "webpack-dev-server": "^4.4.0"
   },
   "browserslist": [

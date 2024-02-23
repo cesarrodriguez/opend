@@ -43,7 +43,7 @@ function Minter() {
               {...register("image", { required: true })}
               className="upload"
               type="file"
-              accept="image/x-png,image/jpeg,image/gif,image/svg+xml,image/webp,image/png"
+              accept="image/x-png,image/jpeg,image/gif,image/svg+xml,image/webp"
             />
           </div>
           <h6 className="form-Typography-root makeStyles-subhead-102 form-Typography-subtitle1 form-Typography-gutterBottom">

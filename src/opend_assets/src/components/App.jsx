@@ -6,15 +6,14 @@ import Item from "./Item";
 import Minter from "./Minter";
 
 function App() {
-  const NFTID = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+  // const NFTID = "rrkah-fqaaa-aaaaa-aaaaq-cai";
 
   return (
     <div className="App">
       <Header />
-
-      {/*<Minter />*/}
+      {/* <Minter /> */}
       {/* <Item id={NFTID}/> */}
-      
+
       <Footer />
     </div>
   );

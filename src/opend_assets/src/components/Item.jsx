@@ -3,8 +3,8 @@ import logo from "../../assets/logo.png";
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "../../../declarations/nft";
 import { Principal } from "@dfinity/principal";
+import { opend } from "../../../declarations/opend";
 import Button from "./Button";
-import { opend } from "../../../declarations/opend"
 
 function Item(props) {
   const [name, setName] = useState();
@@ -17,6 +17,8 @@ function Item(props) {
 
   const localHost = "http://localhost:8080/";
   const agent = new HttpAgent({ host: localHost });
+
+  //TODO: When deploy live, remove the following line.
   agent.fetchRootKey();
   let NFTActor;
 
@@ -37,30 +39,39 @@ function Item(props) {
     setName(name);
     setOwner(owner.toText());
     setImage(image);
-    setButton(<Button handleClick={ handleSell } text={"Sell"}/> )
+
+    setButton(<Button handleClick={handleSell} text={"Sell"} />);
   }
 
   useEffect(() => {
     loadNFT();
   }, []);
-  
-  let price;
-  async function handleSell(){
-    console.log("Sell clicked");
-    setPriceInput( <input placeholder="Price in Dang" type="number" className="price-input" value={price} onChange={ (e) => (price=e.target.value) } />);
-    setButton(<Button handleClick={ sellItem } text= {"Confirm"}/> );
-  };
 
-  async function sellItem(){
+  let price;
+  function handleSell() {
+    console.log("Sell clicked");
+    setPriceInput(
+      <input
+        placeholder="Price in DANG"
+        type="number"
+        className="price-input"
+        value={price}
+        onChange={(e) => (price = e.target.value)}
+      />
+    );
+    setButton(<Button handleClick={sellItem} text={"Confirm"} />);
+  }
+
+  async function sellItem() {
     console.log("set price = " + price);
     const listingResult = await opend.listItem(props.id, Number(price));
-    console.log("Listing" + listingResult); 
-    if(listingResult == "Sucess"){
-        const openId = await opend.getOpenDCannisterID();
-        const transferResult = await NFTActor.transferOwnership(openId);
-        console.log("Transfer: " + transferResult);
+    console.log("listing: " + listingResult);
+    if (listingResult == "Success") {
+      const openDId = await opend.getOpenDCanisterID();
+      const transferResult = await NFTActor.transferOwnership(openDId, true);
+      console.log("transfer: " + transferResult);
     }
-  };
+  }
 
   return (
     <div className="disGrid-item">
@@ -77,8 +88,8 @@ function Item(props) {
           <p className="disTypography-root makeStyles-bodyText-24 disTypography-body2 disTypography-colorTextSecondary">
             Owner: {owner}
           </p>
-          { priceInput }
-          { button }
+          {priceInput}
+          {button}
         </div>
       </div>
     </div>
