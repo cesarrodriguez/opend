@@ -268,7 +268,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "makeNonceTransform": () => (/* reexport safe */ _transforms__WEBPACK_IMPORTED_MODULE_6__.makeNonceTransform),
 /* harmony export */   "makeNonce": () => (/* reexport safe */ _types__WEBPACK_IMPORTED_MODULE_7__.makeNonce),
 /* harmony export */   "RequestStatusResponseStatus": () => (/* binding */ RequestStatusResponseStatus),
-/* harmony export */   "IdentityInvalidError": () => (/* binding */ IdentityInvalidError),
 /* harmony export */   "HttpAgent": () => (/* binding */ HttpAgent)
 /* harmony export */ });
 /* harmony import */ var _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @dfinity/principal */ "./node_modules/@dfinity/principal/lib/esm/index.js");
@@ -314,12 +313,6 @@ class HttpDefaultFetchError extends _errors__WEBPACK_IMPORTED_MODULE_1__.AgentEr
         this.message = message;
     }
 }
-class IdentityInvalidError extends _errors__WEBPACK_IMPORTED_MODULE_1__.AgentError {
-    constructor(message) {
-        super(message);
-        this.message = message;
-    }
-}
 function getDefaultFetch() {
     let defaultFetch;
     if (typeof window !== 'undefined') {
@@ -334,7 +327,7 @@ function getDefaultFetch() {
     else if (typeof __webpack_require__.g !== 'undefined') {
         // Node context
         if (__webpack_require__.g.fetch) {
-            defaultFetch = __webpack_require__.g.fetch.bind(__webpack_require__.g);
+            defaultFetch = __webpack_require__.g.fetch;
         }
         else {
             throw new HttpDefaultFetchError('Fetch implementation was not available. You appear to be in a Node.js context, but global.fetch was not available.');
@@ -342,7 +335,7 @@ function getDefaultFetch() {
     }
     else if (typeof self !== 'undefined') {
         if (self.fetch) {
-            defaultFetch = self.fetch.bind(self);
+            defaultFetch = self.fetch;
         }
     }
     if (defaultFetch) {
@@ -412,16 +405,10 @@ class HttpAgent {
         this._pipeline.splice(i >= 0 ? i : this._pipeline.length, 0, Object.assign(fn, { priority }));
     }
     async getPrincipal() {
-        if (!this._identity) {
-            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
-        }
         return (await this._identity).getPrincipal();
     }
     async call(canisterId, options, identity) {
-        const id = await (identity !== undefined ? await identity : await this._identity);
-        if (!id) {
-            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
-        }
+        const id = (await (identity !== undefined ? await identity : await this._identity));
         const canister = _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.from(canisterId);
         const ecid = options.effectiveCanisterId
             ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.from(options.effectiveCanisterId)
@@ -470,9 +457,6 @@ class HttpAgent {
     }
     async query(canisterId, fields, identity) {
         const id = await (identity !== undefined ? await identity : await this._identity);
-        if (!id) {
-            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
-        }
         const canister = typeof canisterId === 'string' ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.fromText(canisterId) : canisterId;
         const sender = (id === null || id === void 0 ? void 0 : id.getPrincipal()) || _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.anonymous();
         const request = {
@@ -494,7 +478,7 @@ class HttpAgent {
             body: request,
         });
         // Apply transform for identity.
-        transformedRequest = await (id === null || id === void 0 ? void 0 : id.transformRequest(transformedRequest));
+        transformedRequest = await id.transformRequest(transformedRequest);
         const body = _cbor__WEBPACK_IMPORTED_MODULE_3__.encode(transformedRequest.body);
         const response = await this._fetch('' + new URL(`/api/v2/canister/${canister.toText()}/query`, this._host), Object.assign(Object.assign({}, transformedRequest.request), { body }));
         if (!response.ok) {
@@ -507,9 +491,6 @@ class HttpAgent {
     async readState(canisterId, fields, identity) {
         const canister = typeof canisterId === 'string' ? _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.fromText(canisterId) : canisterId;
         const id = await (identity !== undefined ? await identity : await this._identity);
-        if (!id) {
-            throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
-        }
         const sender = (id === null || id === void 0 ? void 0 : id.getPrincipal()) || _dfinity_principal__WEBPACK_IMPORTED_MODULE_0__.Principal.anonymous();
         // TODO: remove this any. This can be a Signed or UnSigned request.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -527,7 +508,7 @@ class HttpAgent {
             },
         });
         // Apply transform for identity.
-        transformedRequest = await (id === null || id === void 0 ? void 0 : id.transformRequest(transformedRequest));
+        transformedRequest = await id.transformRequest(transformedRequest);
         const body = _cbor__WEBPACK_IMPORTED_MODULE_3__.encode(transformedRequest.body);
         const response = await this._fetch('' + new URL(`/api/v2/canister/${canister}/read_state`, this._host), Object.assign(Object.assign({}, transformedRequest.request), { body }));
         if (!response.ok) {
@@ -558,12 +539,6 @@ class HttpAgent {
             this._rootKeyFetched = true;
         }
         return this.rootKey;
-    }
-    invalidateIdentity() {
-        this._identity = null;
-    }
-    replaceIdentity(identity) {
-        this._identity = Promise.resolve(identity);
     }
     _transform(request) {
         let p = Promise.resolve(request);
@@ -689,7 +664,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "ReplicaRejectCode": () => (/* reexport safe */ _api__WEBPACK_IMPORTED_MODULE_0__.ReplicaRejectCode),
 /* harmony export */   "Expiry": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.Expiry),
 /* harmony export */   "HttpAgent": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.HttpAgent),
-/* harmony export */   "IdentityInvalidError": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.IdentityInvalidError),
 /* harmony export */   "RequestStatusResponseStatus": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.RequestStatusResponseStatus),
 /* harmony export */   "makeExpiryTransform": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.makeExpiryTransform),
 /* harmony export */   "makeNonce": () => (/* reexport safe */ _http__WEBPACK_IMPORTED_MODULE_1__.makeNonce),
@@ -1483,11 +1457,6 @@ __webpack_require__.r(__webpack_exports__);
  * @todo https://github.com/dfinity/agent-js/issues/420
  */
 class AgentError extends Error {
-    constructor(message) {
-        super(message);
-        this.message = message;
-        Object.setPrototypeOf(this, AgentError.prototype);
-    }
 }
 //# sourceMappingURL=errors.js.map
 
@@ -1509,7 +1478,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "UpdateCallRejectedError": () => (/* reexport safe */ _actor__WEBPACK_IMPORTED_MODULE_0__.UpdateCallRejectedError),
 /* harmony export */   "Expiry": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.Expiry),
 /* harmony export */   "HttpAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.HttpAgent),
-/* harmony export */   "IdentityInvalidError": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.IdentityInvalidError),
 /* harmony export */   "ProxyAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyAgent),
 /* harmony export */   "ProxyMessageKind": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyMessageKind),
 /* harmony export */   "ProxyStubAgent": () => (/* reexport safe */ _agent__WEBPACK_IMPORTED_MODULE_1__.ProxyStubAgent),
@@ -1939,7 +1907,7 @@ function concat(...buffers) {
 function toHex(buffer) {
     return [...new Uint8Array(buffer)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
-const hexRe = new RegExp(/^([0-9A-F]{2})*$/i);
+const hexRe = /^([0-9A-F]{2})*$/i.compile();
 /**
  * Transforms a hexadecimal string into an array buffer.
  * @param hex The hexadecimal string to use.
@@ -53676,7 +53644,7 @@ function Gallery(props) {
     const [items, setItems] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     function fetchNFTs() {
         if (props.ids != undefined) {
-            setItems(props.ids.map((NFTId) => react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Item__WEBPACK_IMPORTED_MODULE_1__["default"], { id: NFTId, key: NFTId.toText() })));
+            setItems(props.ids.map((NFTId) => (react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Item__WEBPACK_IMPORTED_MODULE_1__["default"], { id: NFTId, key: NFTId.toText(), role: props.role }))));
         }
     }
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
@@ -53723,10 +53691,14 @@ __webpack_require__.r(__webpack_exports__);
 
 function Header() {
     const [userOwnedGallery, setOwnedGallery] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+    const [listingGallery, setListingGallery] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     async function getNFTs() {
         const userNFTIds = await _declarations_opend__WEBPACK_IMPORTED_MODULE_5__.opend.getOwnedNFTs(_index__WEBPACK_IMPORTED_MODULE_6__["default"]);
         console.log(userNFTIds);
-        setOwnedGallery(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Gallery__WEBPACK_IMPORTED_MODULE_4__["default"], { title: "My NFTs", ids: userNFTIds }));
+        setOwnedGallery(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Gallery__WEBPACK_IMPORTED_MODULE_4__["default"], { title: "My NFTs", ids: userNFTIds, role: "collection" }));
+        const listedNFTIds = await _declarations_opend__WEBPACK_IMPORTED_MODULE_5__.opend.getListedNFTs();
+        console.log(listedNFTIds);
+        setListingGallery(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Gallery__WEBPACK_IMPORTED_MODULE_4__["default"], { title: "Discover", ids: listedNFTIds, role: "discover" }));
     }
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
         getNFTs();
@@ -53751,8 +53723,7 @@ function Header() {
         react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Switch, null,
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { exact: true, path: "/" },
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", { className: "bottom-space", src: _assets_home_img_png__WEBPACK_IMPORTED_MODULE_2__["default"] })),
-            react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/discover" },
-                react__WEBPACK_IMPORTED_MODULE_0__.createElement("h1", null, "Discover")),
+            react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/discover" }, listingGallery),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/minter" },
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Minter__WEBPACK_IMPORTED_MODULE_3__["default"], null)),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_8__.Route, { path: "/collection" }, userOwnedGallery))));
@@ -53778,6 +53749,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _declarations_nft__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../declarations/nft */ "./src/declarations/nft/index.js");
 /* harmony import */ var _declarations_opend__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../declarations/opend */ "./src/declarations/opend/index.js");
 /* harmony import */ var _Button__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./Button */ "./src/opend_assets/src/components/Button.jsx");
+/* harmony import */ var _index__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../index */ "./src/opend_assets/src/index.jsx");
+/* harmony import */ var _PriceLabel__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./PriceLabel */ "./src/opend_assets/src/components/PriceLabel.jsx");
+
+
 
 
 
@@ -53789,9 +53764,15 @@ function Item(props) {
     const [image, setImage] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     const [button, setButton] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     const [priceInput, setPriceInput] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+    const [loaderHidden, setLoaderHidden] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+    const [blur, setBlur] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+    const [sellStatus, setSellStatus] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)("");
+    const [priceLabel, setPriceLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
     const id = props.id;
     const localHost = "http://localhost:8080/";
     const agent = new _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__.HttpAgent({ host: localHost });
+    //TODO: When deploy live, remove the following line.
+    agent.fetchRootKey();
     let NFTActor;
     async function loadNFT() {
         NFTActor = await _dfinity_agent__WEBPACK_IMPORTED_MODULE_1__.Actor.createActor(_declarations_nft__WEBPACK_IMPORTED_MODULE_2__.idlFactory, {
@@ -53806,7 +53787,25 @@ function Item(props) {
         setName(name);
         setOwner(owner.toText());
         setImage(image);
-        setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: handleSell, text: "Sell" }));
+        if (props.role == "collection") {
+            const nftIsListed = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.isListed(props.id);
+            if (nftIsListed) {
+                setOwner("OpenD");
+                setBlur({ filter: "blur(4px)" });
+                setSellStatus("Listed");
+            }
+            else {
+                setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: handleSell, text: "Sell" }));
+            }
+        }
+        else if (props.role == "discover") {
+            const originalOwner = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.getOriginalOwner(props.id);
+            if (originalOwner.toText() != _index__WEBPACK_IMPORTED_MODULE_5__["default"].toText()) {
+                setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: handleBuy, text: "Buy" }));
+            }
+            const price = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.getListedNFTPrice(props.id);
+            setPriceLabel(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_PriceLabel__WEBPACK_IMPORTED_MODULE_6__["default"], { sellPrice: price.toString() }));
+        }
     }
     (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
         loadNFT();
@@ -53818,22 +53817,42 @@ function Item(props) {
         setButton(react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Button__WEBPACK_IMPORTED_MODULE_4__["default"], { handleClick: sellItem, text: "Confirm" }));
     }
     async function sellItem() {
+        setBlur({ filter: "blur(4px)" });
+        setLoaderHidden(false);
         console.log("set price = " + price);
         const listingResult = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.listItem(props.id, Number(price));
         console.log("listing: " + listingResult);
         if (listingResult == "Success") {
             const openDId = await _declarations_opend__WEBPACK_IMPORTED_MODULE_3__.opend.getOpenDCanisterID();
-            const transferResult = await NFTActor.transferOwnership(openDId, true);
+            const transferResult = await NFTActor.transferOwnership(openDId);
             console.log("transfer: " + transferResult);
+            if (transferResult == "Success") {
+                setLoaderHidden(true);
+                setButton();
+                setPriceInput();
+                setOwner("OpenD");
+                setSellStatus("Listed");
+            }
         }
+    }
+    async function handleBuy() {
+        console.log("Buy was triggered");
     }
     return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disGrid-item" },
         react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disPaper-root disCard-root makeStyles-root-17 disPaper-elevation1 disPaper-rounded" },
-            react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", { className: "disCardMedia-root makeStyles-image-19 disCardMedia-media disCardMedia-img", src: image }),
+            react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", { className: "disCardMedia-root makeStyles-image-19 disCardMedia-media disCardMedia-img", src: image, style: blur }),
+            react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "lds-ellipsis", hidden: loaderHidden },
+                react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null),
+                react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null),
+                react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null),
+                react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null)),
             react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disCardContent-root" },
+                priceLabel,
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("h2", { className: "disTypography-root makeStyles-bodyText-24 disTypography-h5 disTypography-gutterBottom" },
                     name,
-                    react__WEBPACK_IMPORTED_MODULE_0__.createElement("span", { className: "purple-text" })),
+                    react__WEBPACK_IMPORTED_MODULE_0__.createElement("span", { className: "purple-text" },
+                        " ",
+                        sellStatus)),
                 react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", { className: "disTypography-root makeStyles-bodyText-24 disTypography-body2 disTypography-colorTextSecondary" },
                     "Owner: ",
                     owner),
@@ -53907,6 +53926,30 @@ function Minter() {
     }
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Minter);
+
+
+/***/ }),
+
+/***/ "./src/opend_assets/src/components/PriceLabel.jsx":
+/*!********************************************************!*\
+  !*** ./src/opend_assets/src/components/PriceLabel.jsx ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+function PriceLabel(props) {
+    return (react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { className: "disButtonBase-root disChip-root makeStyles-price-23 disChip-outlined" },
+        react__WEBPACK_IMPORTED_MODULE_0__.createElement("span", { className: "disChip-label" },
+            props.sellPrice,
+            " DANG")));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (PriceLabel);
 
 
 /***/ }),
@@ -54130,7 +54173,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // CANISTER_ID is replaced by webpack based on node environment
-const canisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+const canisterId = "r7inp-6aaaa-aaaaa-aaabq-cai";
 
 /**
  * 
@@ -54180,12 +54223,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 const idlFactory = ({ IDL }) => {
   return IDL.Service({
+    'getListedNFTPrice' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+    'getListedNFTs' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getOpenDCanisterID' : IDL.Func([], [IDL.Principal], ['query']),
+    'getOriginalOwner' : IDL.Func([IDL.Principal], [IDL.Principal], ['query']),
     'getOwnedNFTs' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(IDL.Principal)],
         ['query'],
       ),
+    'isListed' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'listItem' : IDL.Func([IDL.Principal, IDL.Nat], [IDL.Text], []),
     'mint' : IDL.Func([IDL.Vec(IDL.Nat8), IDL.Text], [IDL.Principal], []),
   });
